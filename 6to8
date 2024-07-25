@@ -1,0 +1,384 @@
+Setting Up the Django Project and App
+
+sh
+Copy code
+django-admin startproject school
+cd school
+django-admin startapp courses
+Updating settings.py
+
+Add the new app to the INSTALLED_APPS list in school/settings.py:
+
+python
+Copy code
+INSTALLED_APPS = [
+    ...
+    'courses',
+]
+Creating the Models
+
+Edit courses/models.py to define the Student and Course models:
+
+python
+Copy code
+from django.db import models
+
+class Student(models.Model):
+    first_name = models.CharField(max_length=50)
+    last_name = models.CharField(max_length=50)
+    email = models.EmailField()
+
+    def __str__(self):
+        return f'{self.first_name} {self.last_name}'
+
+class Course(models.Model):
+    name = models.CharField(max_length=100)
+    description = models.TextField()
+    students = models.ManyToManyField(Student, related_name='courses')
+
+    def __str__(self):
+        return self.name
+Creating and Applying Migrations
+
+sh
+Copy code
+python manage.py makemigrations
+python manage.py migrate
+Registering Models in Admin Interface
+
+Edit courses/admin.py:
+
+python
+Copy code
+from django.contrib import admin
+from .models import Student, Course
+
+admin.site.register(Student)
+admin.site.register(Course)
+Creating a Superuser
+
+sh
+Copy code
+python manage.py createsuperuser
+Follow the prompts to create a superuser.
+
+Running the Server
+
+sh
+Copy code
+python manage.py runserver
+Accessing the Admin Interface
+
+Open your web browser and navigate to http://127.0.0.1:8000/admin. Log in using the superuser credentials and you should see the Student and Course models available for data entry.
+
+Program 7: Model Form for Project Model
+Aim:
+Develop a model form for a Project model that contains fields: topic, project language, and duration, with CRUD operations.
+
+Steps:
+Setting Up the Django Project and App
+
+sh
+Copy code
+django-admin startproject project_manager
+cd project_manager
+django-admin startapp projects
+Updating settings.py
+
+Add the new app to the INSTALLED_APPS list in project_manager/settings.py:
+
+python
+Copy code
+INSTALLED_APPS = [
+    ...
+    'projects',
+]
+Creating the Model
+
+Edit projects/models.py:
+
+python
+Copy code
+from django.db import models
+
+class Project(models.Model):
+    topic = models.CharField(max_length=100)
+    language = models.CharField(max_length=50)
+    duration = models.IntegerField()
+
+    def __str__(self):
+        return self.topic
+Creating and Applying Migrations
+
+sh
+Copy code
+python manage.py makemigrations
+python manage.py migrate
+Creating the Model Form
+
+Edit projects/forms.py:
+
+python
+Copy code
+from django import forms
+from .models import Project
+
+class ProjectForm(forms.ModelForm):
+    class Meta:
+        model = Project
+        fields = '__all__'
+Creating Views and URLs
+
+Edit projects/views.py:
+
+python
+Copy code
+from django.shortcuts import render, redirect
+from .models import Project
+from .forms import ProjectForm
+
+def project_list(request):
+    projects = Project.objects.all()
+    return render(request, 'projects/project_list.html', {'projects': projects})
+
+def project_create(request):
+    if request.method == 'POST':
+        form = ProjectForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('project_list')
+    else:
+        form = ProjectForm()
+    return render(request, 'projects/project_form.html', {'form': form})
+
+def project_update(request, pk):
+    project = Project.objects.get(pk=pk)
+    if request.method == 'POST':
+        form = ProjectForm(request.POST, instance=project)
+        if form.is_valid():
+            form.save()
+            return redirect('project_list')
+    else:
+        form = ProjectForm(instance=project)
+    return render(request, 'projects/project_form.html', {'form': form})
+
+def project_delete(request, pk):
+    project = Project.objects.get(pk=pk)
+    if request.method == 'POST':
+        project.delete()
+        return redirect('project_list')
+    return render(request, 'projects/project_confirm_delete.html', {'project': project})
+Edit projects/urls.py:
+
+python
+Copy code
+from django.urls import path
+from . import views
+
+urlpatterns = [
+    path('', views.project_list, name='project_list'),
+    path('create/', views.project_create, name='project_create'),
+    path('update/<int:pk>/', views.project_update, name='project_update'),
+    path('delete/<int:pk>/', views.project_delete, name='project_delete'),
+]
+Edit project_manager/urls.py to include the projects URLs:
+
+python
+Copy code
+from django.contrib import admin
+from django.urls import path, include
+
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    path('projects/', include('projects.urls')),
+]
+Creating Templates
+
+Create a directory named templates/projects/ and add the following HTML files:
+
+project_list.html
+
+html
+Copy code
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Projects</title>
+</head>
+<body>
+    <h1>Projects</h1>
+    <a href="{% url 'project_create' %}">Add Project</a>
+    <ul>
+        {% for project in projects %}
+            <li>{{ project.topic }} - {{ project.language }} - {{ project.duration }}
+                <a href="{% url 'project_update' project.pk %}">Edit</a>
+                <a href="{% url 'project_delete' project.pk %}">Delete</a>
+            </li>
+        {% endfor %}
+    </ul>
+</body>
+</html>
+project_form.html
+
+html
+Copy code
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Project Form</title>
+</head>
+<body>
+    <h1>Project Form</h1>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Save</button>
+    </form>
+</body>
+</html>
+project_confirm_delete.html
+
+html
+Copy code
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Delete Project</title>
+</head>
+<body>
+    <h1>Are you sure you want to delete "{{ project.topic }}"?</h1>
+    <form method="post">
+        {% csrf_token %}
+        <button type="submit">Confirm</button>
+    </form>
+</body>
+</html>
+Running the Server
+
+sh
+Copy code
+python manage.py runserver
+Open your web browser and navigate to http://127.0.0.1:8000/projects/ to see the list of projects and perform CRUD operations.
+
+Program 8: Generic ListView and DetailView
+Aim:
+Create a generic list view that displays a list of students and a detail view that displays student details for each selected student.
+
+Steps:
+Setting Up the Django Project and App
+
+sh
+Copy code
+django-admin startproject school
+cd school
+django-admin startapp students
+Updating settings.py
+
+Add the new app to the INSTALLED_APPS list in school/settings.py:
+
+python
+Copy code
+INSTALLED_APPS = [
+    ...
+    'students',
+]
+Creating the Model
+
+Edit students/models.py:
+
+python
+Copy code
+from django.db import models
+
+class Student(models.Model):
+    first_name = models.CharField(max_length=50)
+    last_name = models.CharField(max_length=50)
+    email = models.EmailField()
+
+    def __str__(self):
+        return f'{self.first_name} {self.last_name}'
+Creating and Applying Migrations
+
+sh
+Copy code
+python manage.py makemigrations
+python manage.py migrate
+Creating Views and URLs
+
+Edit students/views.py:
+
+python
+Copy code
+from django.views.generic import ListView, DetailView
+from .models import Student
+
+class StudentListView(ListView):
+    model = Student
+    template_name = 'students/student_list.html'
+
+class StudentDetailView(DetailView):
+    model = Student
+    template_name = 'students/student_detail.html'
+Edit students/urls.py:
+
+python
+Copy code
+from django.urls import path
+from .views import StudentListView, StudentDetailView
+
+urlpatterns = [
+    path('', StudentListView.as_view(), name='student_list'),
+    path('<int:pk>/', StudentDetailView.as_view(), name='student_detail'),
+]
+Edit school/urls.py to include the students URLs:
+
+python
+Copy code
+from django.contrib import admin
+from django.urls import path, include
+
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    path('students/', include('students.urls')),
+]
+Creating Templates
+
+Create a directory named templates/students/ and add the following HTML files:
+
+student_list.html
+
+html
+Copy code
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Students</title>
+</head>
+<body>
+    <h1>Students</h1>
+    <ul>
+        {% for student in object_list %}
+            <li><a href="{% url 'student_detail' student.pk %}">{{ student.first_name }} {{ student.last_name }}</a></li>
+        {% endfor %}
+    </ul>
+</body>
+</html>
+student_detail.html
+
+html
+Copy code
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Student Details</title>
+</head>
+<body>
+    <h1>{{ object.first_name }} {{ object.last_name }}</h1>
+    <p>Email: {{ object.email }}</p>
+</body>
+</html>
+Running the Server
+
+sh
+Copy code
+python manage.py runserver
